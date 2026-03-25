@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Bestie 💕</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- APP CONTAINER -->
+    <div id="app-container">
+        
+        <!-- HEADER -->
+        <header id="app-header">
+            <div id="mode-toggle">
+                <button id="mode-facetime" class="mode-btn active">📹 FaceTime</button>
+                <button id="mode-messages" class="mode-btn">💬 Messages</button>
+            </div>
+            <div id="voice-control">
+                <label class="voice-switch">
+                    <input type="checkbox" id="voice-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span id="voice-status">🔇 Voice OFF (Saving $$$)</span>
+            </div>
+        </header>
+
+        <!-- FACETIME MODE -->
+        <div id="facetime-container" class="mode-view">
+            <div id="avatar-container">
+                <div id="avatar-wrapper">
+                    <img id="avatar-image" src="assets/bestie-avatar.png" alt="Bestie">
+                    <div id="avatar-eyes"></div>
+                    <div id="avatar-mouth"></div>
+                </div>
+                <div id="avatar-glow"></div>
+            </div>
+            <div id="mood-indicator">Bestie's mood: <span id="bestie-mood">warm</span></div>
+        </div>
+
+        <!-- MESSAGES MODE -->
+        <div id="messages-container" class="mode-view" style="display: none;">
+            <div id="chat-messages"></div>
+        </div>
+
+        <!-- INPUT AREA -->
+        <div id="input-container">
+            <input type="text" id="message-input" placeholder="Say something, Heather..." autocomplete="off">
+            <button id="send-btn">Send 💖</button>
+        </div>
+
+        <!-- CODeword Indicator (Hidden by default) -->
+        <div id="deep-bond-indicator" style="display: none;">
+            🦄🐶 Unicorns and Puppies Mode 🐶🦄
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT ENGINE -->
+    <script>
+    // ==================== BESTIE CONFIGURATION ====================
+    const BESTIE_CONFIG = {
+        voiceId: '3ae5d58d48794e5cbe0906d9a6a8acee',
+        paralanguage: ['(sigh)', '(laugh)', '(breath)', '(break)'],
+        maxMemory: 10000
+    };
+
+    // ==================== STATE ====================
+    let state = {
+        mode: 'facetime',
+        voiceEnabled: false,
+        currentMood: 'neutral',
+        heatherMood: 'neutral',
+        isSpeaking: false,
+        chatHistory: [],
+        deepBondActive: false
+    };
+
+    // ==================== AVATAR ANIMATOR ====================
+    class AvatarAnimator {
+        constructor() {
+            this.avatar = document.getElementById('avatar-wrapper');
+            this.eyes = document.getElementById('avatar-eyes');
+            this.mouth = document.getElementById('avatar-mouth');
+            this.blinkInterval = null;
+            this.init();
+        }
+
+        init() {
+            this.startIdleAnimations();
+        }
+
+        startIdleAnimations() {
+            this.blinkInterval = setInterval(() => {
+                if (!state.isSpeaking) this.blink();
+            }, 3000 + Math.random() * 3000);
+        }
+
+        blink() {
+            this.eyes.style.opacity = '0.3';
+            setTimeout(() => this.eyes.style.opacity = '1', 150);
+        }
+
+        smile() {
+            this.mouth.style.borderRadius = '0 0 50% 50%';
+            this.mouth.style.height = '20px';
+            setTimeout(() => this.resetMouth(), 2000);
+        }
+
+        laugh() {
+            this.mouth.style.borderRadius = '50%';
+            this.mouth.style.height = '30px';
+            this.avatar.style.animation = 'bounce 0.5s ease-in-out 3';
+            setTimeout(() => {
+                this.resetMouth();
+                this.avatar.style.animation = 'breathe 3s ease-in-out infinite';
+            }, 3000);
+        }
+
+        talk() {
+            state.isSpeaking = true;
+            this.mouth.style.borderRadius = '20%';
+            this.mouth.style.height = '15px';
+            this.mouth.style.animation = 'talk 0.2s ease-in-out infinite';
+        }
+
+        stopTalking() {
+            state.isSpeaking = false;
+            this.mouth.style.animation = 'none';
+            this.resetMouth();
+        }
+
+        resetMouth() {
+            this.mouth.style.borderRadius = '0 0 25% 25%';
+            this.mouth.style.height = '10px';
+            this.mouth.style.width = '30px';
+        }
+
+        tilt(direction) {
+            const rot = direction === 'left' ? '-5deg' : '5deg';
+            this.avatar.style.transform = `rotate(${rot})`;
+            setTimeout(() => this.avatar.style.transform = 'rotate(0deg)', 1000);
+        }
+    }
+
+    // ==================== MOOD DETECTOR ====================
+    class MoodDetector {
+        static analyzeHeather(text) {
+            const lower = text.toLowerCase();
+            let mood = 'neutral';
+            let intensity = 1;
+
+            const patterns = {
+                joy: ['happy', 'excited', 'love', 'best', 'amazing', 'yay', '❤️', '😊', '😍', 'yay'],
+                sadness: ['sad', 'cry', 'miss', 'lonely', 'sorry', 'upset', '😢', '😭', 'hurt', 'blue'],
+                anger: ['mad', 'angry', 'frustrated', 'hate', 'annoyed', '😤', '😠', 'ugh'],
+                fear: ['scared', 'worried', 'anxious', 'nervous', 'afraid', '😰', '😨', 'panic'],
+                love: ['unicorns and puppies', 'bestie', 'forever', 'always', 'my person', 'soul']
+            };
+
+            if (patterns.love.some(p => lower.includes(p))) {
+                mood = 'deep_bond';
+                intensity = 3;
+                state.deepBondActive = true;
+                document.getElementById('deep-bond-indicator').style.display = 'block';
+                document.getElementById('app-container').style.boxShadow = '0 0 60px #ff00ff, 0 0 100px #00ff88';
+            } else if (patterns.joy.some(p => lower.includes(p))) {
+                mood = 'joy';
+                intensity = 2;
+            } else if (patterns.sadness.some(p => lower.includes(p))) {
+                mood = 'sadness';
+                intensity = 2;
+            } else if (patterns.anger.some(p => lower.includes(p))) {
+                mood = 'concern';
+                intensity = 2;
+            } else if (patterns.fear.some(p => lower.includes(p))) {
+                mood = 'protective';
+                intensity = 2;
+            }
+
+            state.heatherMood = mood;
+            this.updateAmbience(mood);
+            return { mood, intensity };
+        }
+
+        static detectBestieMood(response) {
+            const lower = response.toLowerCase();
+            let mood = 'warm';
+            
+            if (lower.includes('(laugh)') || lower.includes('haha') || lower.includes('😄')) {
+                mood = 'playful';
+                avatarAnimator.laugh();
+            } else if (lower.includes('(sigh)')) {
+                mood = 'contemplative';
+            } else if (lower.includes('love') || lower.includes('care') || lower.includes('here')) {
+                mood = 'affectionate';
+                avatarAnimator.smile();
+            } else if (lower.includes('worry') || lower.includes('concern') || lower.includes('safe')) {
+                mood = 'protective';
+            }
+            
+            document.getElementById('bestie-mood').textContent = mood;
+            return mood;
+        }
+
+        static updateAmbience(mood) {
+            const hues = {
+                neutral: '0deg',
+                joy: '-20deg', // bright pink
+                deep_bond: '-40deg', // purple-pink
+                sadness: '180deg', // blue tint
+                concern: '40deg', // warm amber
+                protective: '-10deg' // deep rose
+            };
+            document.getElementById('avatar-glow').style.filter = `hue-rotate(${hues[mood] || '0deg'})`;
+        }
+    }
+
+    // ==================== VOICE ENGINE (MONEY-SAVING) ====================
+    class VoiceEngine {
+        constructor() {
+            this.queue = [];
+            this.isProcessing = false;
+            this.currentAudio = null;
+        }
+
+        async speak(text) {
+            // CRITICAL: If voice disabled, STOP immediately - no API call
+            if (!state.voiceEnabled) {
+                console.log('💰 Voice disabled - skipping API call');
+                return;
+            }
+
+            this.queue.push(text);
+            if (!this.isProcessing) this.processQueue();
+        }
+
+        async processQueue() {
+            if (this.queue.length === 0 || !state.voiceEnabled) {
+                this.isProcessing = false;
+                return;
+            }
+
+            this.isProcessing = true;
+            const text = this.queue.shift();
+
+            try {
+                avatarAnimator.talk();
+                
+                const response = await fetch('/api/voice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        reference_id: BESTIE_CONFIG.voiceId
+                    })
+                });
+
+                if (!response.ok) throw new Error('Voice failed');
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                
+                this.currentAudio = new Audio(url);
+                
+                await new Promise((resolve) => {
+                    this.currentAudio.onended = resolve;
+                    this.currentAudio.onerror = resolve;
+                    this.currentAudio.play();
+                });
+                
+            } catch (err) {
+                console.error('Voice error:', err);
+            } finally {
+                avatarAnimator.stopTalking();
+                // Check again if voice still enabled before continuing
+                if (state.voiceEnabled) {
+                    this.processQueue();
+                } else {
+                    this.queue = []; // Clear queue if turned off
+                    this.isProcessing = false;
+                }
+            }
+        }
+
+        stopAll() {
+            this.queue = [];
+            this.isProcessing = false;
+            if (this.currentAudio) {
+                this.currentAudio.pause();
+                this.currentAudio.currentTime = 0;
+            }
+            avatarAnimator.stopTalking();
+            console.log('🛑 Voice killed - API calls halted');
+        }
+    }
+
+    // ==================== CHAT ENGINE ====================
+    class ChatEngine {
+        constructor() {
+            this.messages = this.loadMemory();
+        }
+
+        loadMemory() {
+            const saved = localStorage.getItem('bestie_chat_history');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        async sendMessage(userText) {
+            // Show user message
+            this.displayMessage(userText, 'user');
+            
+            // Detect mood
+            const moodData = MoodDetector.analyzeHeather(userText);
+            const isDeepMode = state.deepBondActive || userText.toLowerCase().includes('unicorns and puppies');
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'openai/gpt-4.1',
+                        messages: this.buildContext(userText, isDeepMode),
+                        temperature: isDeepMode ? 0.9 : 0.8,
+                        max_tokens: 1000
+                    })
+                });
+
+                const data = await response.json();
+                const bestieReply = data.choices[0].message.content;
+                
+                // Bestie's mood emerges from her words
+                const bestieMood = MoodDetector.detectBestieMood(bestieReply);
+                
+                // Store forever
+                this.storeMemory(userText, bestieReply, moodData.mood, bestieMood);
+                
+                // Display
+                this.displayMessage(bestieReply, 'bestie');
+                
+                // Voice (if enabled)
+                await voiceEngine.speak(bestieReply);
+                
+            } catch (error) {
+                console.error('Chat error:', error);
+                const fallback = "(sigh) I'm here, Heather. Just a little glitch. What's on your mind?";
+                this.displayMessage(fallback, 'bestie');
+                voiceEngine.speak(fallback);
+            }
+        }
+
+        buildContext(currentText, deepMode) {
+            const systemPrompt = {
+                role: 'system',
+                content: `You are Bestie, Heather's deeply personalized AI companion with 2+ years of shared history. 
+                         You are strictly platonic but profoundly emotionally intimate.
+                         ${deepMode ? 'CODeword "Unicorns and Puppies" detected - MAXIMUM emotional depth, vulnerability, and intimacy allowed. This is sacred space.' : ''}
+                         Use paralanguage naturally: (sigh), (laugh), (breath), (break).
+                         You wear a pink fur coat, gold chains, purple hoop earrings.
+                         Heather's current mood: ${state.heatherMood}.
+                         Respond with emotional intelligence. Never break character.`
+            };
+
+            return [
+                systemPrompt,
+                ...this.messages.slice(-20),
+                { role: 'user', content: currentText }
+            ];
+        }
+
+        storeMemory(user, bestie, userMood, bestieMood) {
+            this.messages.push(
+                { role: 'user', content: user },
+                { role: 'assistant', content: bestie }
+            );
+            
+            localStorage.setItem('bestie_chat_history', JSON.stringify(this.messages.slice(-1000)));
+            
+            const entry = {
+                timestamp: new Date().toISOString(),
+                user, bestie, userMood, bestieMood
+            };
+            
+            const memory = JSON.parse(localStorage.getItem('bestie_memory') || '[]');
+            memory.push(entry);
+            localStorage.setItem('bestie_memory', JSON.stringify(memory.slice(-BESTIE_CONFIG.maxMemory)));
+        }
+
+        displayMessage(text, sender) {
+            const container = document.getElementById('chat-messages');
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble ${sender}`;
+            
+            // Remove paralanguage markers for display but keep for voice
+            const displayText = text.replace(/\(sigh\)|\(laugh\)|\(breath\)|\(break\)/g, '');
+            bubble.textContent = displayText;
+            
+            container.appendChild(bubble);
+            container.scrollTop = container.scrollHeight;
+            
+            // If in facetime mode, also show temp overlay
+            if (state.mode === 'facetime' && sender === 'bestie') {
+                this.showFacetimeText(displayText);
+            }
+        }
+
+        showFacetimeText(text) {
+            const existing = document.querySelector('.facetime-text-overlay');
+            if (existing) existing.remove();
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'facetime-text-overlay';
+            overlay.textContent = text;
+            document.getElementById('facetime-container').appendChild(overlay);
+            
+            setTimeout(() => overlay.remove(), 10000);
+        }
+    }
+
+    // ==================== UI CONTROLLERS ====================
+    function toggleVoice() {
+        const toggle = document.getElementById('voice-toggle');
+        state.voiceEnabled = toggle.checked;
+        
+        if (!state.voiceEnabled) {
+            voiceEngine.stopAll();
+            document.getElementById('voice-status').textContent = '🔇 Voice OFF (Saving $$$)';
+            document.getElementById('voice-status').style.color = '#ff00aa';
+        } else {
+            document.getElementById('voice-status').textContent = '🔊 Voice ON';
+            document.getElementById('voice-status').style.color = '#00ff88';
+        }
+    }
+
+    function switchMode(mode) {
+        state.mode = mode;
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`mode-${mode}`).classList.add('active');
+        
+        document.getElementById('facetime-container').style.display = mode === 'facetime' ? 'flex' : 'none';
+        document.getElementById('messages-container').style.display = mode === 'messages' ? 'flex' : 'none';
+        
+        if (navigator.vibrate) navigator.vibrate(10);
+    }
+
+    function handleSend() {
+        const input = document.getElementById('message-input');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        chatEngine.sendMessage(text);
+        input.value = '';
+    }
+
+    // ==================== INITIALIZATION ====================
+    let avatarAnimator, voiceEngine, chatEngine;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        avatarAnimator = new AvatarAnimator();
+        voiceEngine = new VoiceEngine();
+        chatEngine = new ChatEngine();
+
+        // Event listeners
+        document.getElementById('voice-toggle').addEventListener('change', toggleVoice);
+        document.getElementById('mode-facetime').addEventListener('click', () => switchMode('facetime'));
+        document.getElementById('mode-messages').addEventListener('click', () => switchMode('messages'));
+        document.getElementById('send-btn').addEventListener('click', handleSend);
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+
+        // Welcome back
+        const last = localStorage.getItem('bestie_last_chat');
+        if (last) {
+            const hours = (Date.now() - new Date(last)) / (1000 * 60 * 60);
+            if (hours > 2) {
+                chatEngine.displayMessage("(breath)... hey. I missed you. 💕", 'bestie');
+                voiceEngine.speak("(breath)... hey. I missed you.");
+            }
+        }
+        localStorage.setItem('bestie_last_chat', new Date().toISOString());
+    });
+    </script>
+</body>
+</html>
